@@ -90,8 +90,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Receive_IT(&huart1, rx_buf, 2);  // Dinlemeyi başlat: 2 karakter gelince kesme tetiklenir
-
+  HAL_UART_Receive_IT(&huart1, rx_buf, 2);  // UART'ı kesme modunda dinlemeye başlat: 2 karakter gelince kesme tetiklenir
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -206,25 +205,30 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-// Karaktere göre pini LOW, HIGH veya TOGGLE yapar
-void apply_command(char c, GPIO_TypeDef *port, uint16_t pin)
-{
-  if (c == '0')      HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);  // '0' -> LOW
-  else if (c == '1') HAL_GPIO_WritePin(port, pin, GPIO_PIN_SET);    // '1' -> HIGH
-  else if (c == '2') HAL_GPIO_TogglePin(port, pin);                 // '2' -> TOGGLE
-  // Başka bir karakter gelirse yok sayılır
-}
 
-// 2 karakter alındığında HAL bu fonksiyonu otomatik olarak çağırır
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-  if (huart->Instance == USART1)  // Verinin USART1'den geldiğinden emin ol
-  {
-    apply_command(rx_buf[0], LED1_GPIO_Port, LED1_Pin);  // İlk karakter 1. pini kontrol eder
-    apply_command(rx_buf[1], LED2_GPIO_Port, LED2_Pin);  // İkinci karakter 2. pini kontrol eder
-    HAL_UART_Receive_IT(&huart1, rx_buf, 2);             // Bir sonraki mesaj için alıcıyı tekrar kur
-  }
-}
+// Gelen karaktere göre verilen pini LOW, HIGH veya TOGGLE yapan fonksiyon
+void apply_command(char c, GPIO_TypeDef *port, uint16_t pin)  // c: komut karakteri, port ve pin: kontrol edilecek pin
+{                                                             // Fonksiyonun başlangıcı
+  if (c == '0')                                               // Karakter '0' ise
+    HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);             // Pini LOW yap
+  else if (c == '1')                                          // Karakter '1' ise
+    HAL_GPIO_WritePin(port, pin, GPIO_PIN_SET);               // Pini HIGH yap
+  else if (c == '2')                                          // Karakter '2' ise
+    HAL_GPIO_TogglePin(port, pin);                            // Pinin durumunu tersine çevir (TOGGLE)
+  // Başka bir karakter gelirse hiçbir şey yapılmaz (yok sayılır)
+}                                                             // Fonksiyonun sonu
+
+// 2 karakter alındığında HAL tarafından otomatik çağrılan kesme fonksiyonu
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)       // huart: veriyi alan UART
+{                                                             // Fonksiyonun başlangıcı
+  if (huart->Instance == USART1)                              // Veri USART1'den geldiyse
+  {                                                           // if bloğunun başlangıcı
+    apply_command(rx_buf[0], LED1_GPIO_Port, LED1_Pin);       // İlk karakter 1. pini (PA0) kontrol eder
+    apply_command(rx_buf[1], LED2_GPIO_Port, LED2_Pin);       // İkinci karakter 2. pini (PA1) kontrol eder
+    HAL_UART_Receive_IT(&huart1, rx_buf, 2);                  // Sonraki mesaj için alıcıyı tekrar kur
+  }                                                           // if bloğunun sonu
+}                                                             // Fonksiyonun sonu
+
 /* USER CODE END 4 */
 
 /**
